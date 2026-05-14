@@ -74,10 +74,10 @@
 <body>
 
 <h1>🎬 Family Guy <span>Brainrot</span> Generator</h1>
-<p class="subtitle">Powered by FakeYou TTS · Canvas + Web Audio · No server needed</p>
+<p class="subtitle">Powered by StreamElements TTS · Canvas + Web Audio · No server needed</p>
 
 <div class="cors-note">
-  <strong>✅ Direct API Mode:</strong> Running on GitHub Pages — API requests go directly to FakeYou with no proxy needed. If generation fails, check your internet connection or try refreshing.
+  <strong>✅ StreamElements TTS:</strong> Instant voice generation — no waiting, no API key needed. Peter uses Matthew voice, Stewie uses Brian voice.
 </div>
 
 <!-- Background Video -->
@@ -150,12 +150,9 @@ const S = {
   bgFile: null,
 };
 
-// Personal Cloudflare Worker proxy — bypasses FakeYou CORS restrictions.
-const PROXY = 'https://tight-boat-f18b.l3onfxdupree.workers.dev/?url=';
-const purl = u => PROXY + encodeURIComponent(u);
-const FAKEYOU = 'https://api.fakeyou.com';
-const AUDIO_CDN = 'https://storage.googleapis.com/vocodes-public';
-const MODEL = { peter: 'TM:7yxryv11mhn9', stewie: 'TM:4m9rvpjks7e8' };
+// StreamElements TTS — instant, free, no API key, CORS-friendly.
+// Peter uses a deep male voice; Stewie uses a British male voice.
+const SE_VOICE = { peter: 'Matthew', stewie: 'Brian' };
 
 // ═══════════════════════════════════════════
 // LOGGING
@@ -329,65 +326,13 @@ function setBgFile(f) {
 // FAKEYOU TTS
 // ═══════════════════════════════════════════
 async function generateTTS(char, text) {
-  const token = MODEL[char];
-  const uuid = crypto.randomUUID();
-
-  log(`Submitting TTS [${char}]: "${text.substring(0,45)}${text.length>45?'…':''}"`);
-
-  const res = await fetch(purl(`${FAKEYOU}/tts/inference`), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({
-      tts_model_token: token,
-      uuid_idempotency_token: uuid,
-      inference_text: text,
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`FakeYou submit failed (${res.status}): ${body.substring(0,200)}`);
-  }
-
-  const data = await res.json();
-  if (!data.success) throw new Error(`FakeYou error: ${JSON.stringify(data)}`);
-
-  const jobToken = data.inference_job_token;
-  log(`Job submitted: ${jobToken}`);
-  return await pollJob(jobToken);
-}
-
-async function pollJob(jobToken, maxTries = 150) {
-  for (let i = 0; i < maxTries; i++) {
-    await sleep(2000);
-    let res;
-    try {
-      res = await fetch(purl(`${FAKEYOU}/tts/job/${jobToken}`), {
-        headers: { 'Accept': 'application/json' },
-      });
-    } catch (e) { log(`Poll network err: ${e.message}`, 'warn'); continue; }
-
-    if (!res.ok) { log(`Poll HTTP ${res.status}`, 'warn'); continue; }
-    const data = await res.json();
-    if (!data.success) continue;
-
-    const statusType = data.state?.status?.status_type;
-    if (i % 3 === 0) log(`Poll ${i+1}: ${statusType}`);
-
-    if (statusType === 'complete_success') {
-      const path = data.state.maybe_public_bucket_wav_audio_path;
-      const url = `${AUDIO_CDN}${path}`;
-      log(`Audio ready → ${url.substring(url.lastIndexOf('/')+1)}`, 'ok');
-      const audioRes = await fetch(purl(url));
-      if (!audioRes.ok) throw new Error(`Audio fetch failed: ${audioRes.status}`);
-      return await audioRes.arrayBuffer();
-    }
-
-    if (statusType === 'attempt_failed' || statusType === 'dead') {
-      throw new Error(`TTS job failed: ${statusType}`);
-    }
-  }
-  throw new Error('TTS job timed out after 5 minutes');
+  const voice = SE_VOICE[char];
+  log(`TTS [${char}/${voice}]: "${text.substring(0,45)}${text.length>45?'…':''}"`);
+  const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`StreamElements TTS failed (${res.status})`);
+  log(`Audio ready`, 'ok');
+  return await res.arrayBuffer();
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
