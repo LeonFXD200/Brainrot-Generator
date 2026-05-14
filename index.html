@@ -77,7 +77,18 @@
 <p class="subtitle">Powered by StreamElements TTS · Canvas + Web Audio · No server needed</p>
 
 <div class="cors-note">
-  <strong>✅ StreamElements TTS:</strong> Instant voice generation — no waiting, no API key needed. Peter uses Matthew voice, Stewie uses Brian voice.
+  <strong>🔑 FakeYou Account Required for fast generation.</strong> Create a free account at <a href="https://fakeyou.com" target="_blank" style="color:#ffcc02">fakeyou.com</a>, then enter your credentials below before generating.
+</div>
+
+<!-- FakeYou Login -->
+<div class="section">
+  <div class="section-title">🔑 FakeYou Login</div>
+  <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+    <input type="text" id="fy-user" placeholder="Username or email" style="flex:1;min-width:140px;background:#222;border:1px solid #333;border-radius:8px;color:#f0f0f0;padding:8px 10px;font-size:0.88rem;font-family:inherit">
+    <input type="password" id="fy-pass" placeholder="Password" style="flex:1;min-width:140px;background:#222;border:1px solid #333;border-radius:8px;color:#f0f0f0;padding:8px 10px;font-size:0.88rem;font-family:inherit">
+    <button onclick="loginFakeYou()" style="padding:8px 18px;background:#4fc3f7;border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:0.9rem">Connect</button>
+  </div>
+  <div id="fy-status" style="font-size:0.82rem;color:#555">Not connected — log in for faster generation.</div>
 </div>
 
 <!-- Background Video -->
@@ -156,6 +167,37 @@ const purl = u => PROXY + encodeURIComponent(u);
 const FAKEYOU = 'https://api.fakeyou.com';
 const AUDIO_CDN = 'https://storage.googleapis.com/vocodes-public';
 const MODEL = { peter: 'TM:9wqc59heasx8', stewie: 'TM:24nz88eyawr3' };
+let fySession = null;
+
+async function loginFakeYou() {
+  const user = document.getElementById('fy-user').value.trim();
+  const pass = document.getElementById('fy-pass').value.trim();
+  if (!user || !pass) { alert('Enter your FakeYou username and password'); return; }
+  const statusEl = document.getElementById('fy-status');
+  statusEl.textContent = 'Logging in…';
+  statusEl.style.color = '#888';
+  try {
+    const res = await fetch(purl(`${FAKEYOU}/login`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ username_or_email: user, password: pass }),
+    });
+    const cookie = res.headers.get('x-set-cookie');
+    if (cookie) fySession = cookie.split(';')[0];
+    const data = await res.json();
+    if (data.success) {
+      statusEl.textContent = `✅ Connected as ${user} — generation will be fast!`;
+      statusEl.style.color = '#66bb6a';
+      log(`FakeYou: logged in as ${user}`, 'ok');
+    } else {
+      throw new Error(data.error_reason || JSON.stringify(data));
+    }
+  } catch (e) {
+    statusEl.textContent = `❌ Login failed: ${e.message}`;
+    statusEl.style.color = '#ef5350';
+    log(`FakeYou login failed: ${e.message}`, 'err');
+  }
+}
 
 // ═══════════════════════════════════════════
 // LOGGING
@@ -333,9 +375,11 @@ async function generateTTS(char, text) {
   const uuid = crypto.randomUUID();
   log(`Submitting TTS [${char}]: "${text.substring(0,45)}${text.length>45?'…':''}"`);
 
+  const authHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+  if (fySession) authHeaders['Cookie'] = fySession;
   const res = await fetch(purl(`${FAKEYOU}/tts/inference`), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    headers: authHeaders,
     body: JSON.stringify({ tts_model_token: token, uuid_idempotency_token: uuid, inference_text: text }),
   });
   if (!res.ok) {
