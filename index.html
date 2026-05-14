@@ -150,10 +150,12 @@ const S = {
   bgFile: null,
 };
 
-// Google Translate TTS — free, no API key, proxied through Cloudflare Worker.
-// Peter = American English, Stewie = British English.
-const WORKER = 'https://tight-boat-f18b.l3onfxdupree.workers.dev/?url=';
-const TTS_LANG = { peter: 'en-US', stewie: 'en-GB' };
+// FakeYou TTS via Cloudflare Worker proxy (strips Origin header so FakeYou allows it).
+const PROXY = 'https://tight-boat-f18b.l3onfxdupree.workers.dev/?url=';
+const purl = u => PROXY + encodeURIComponent(u);
+const FAKEYOU = 'https://api.fakeyou.com';
+const AUDIO_CDN = 'https://storage.googleapis.com/vocodes-public';
+const MODEL = { peter: 'TM:9wqc59heasx8', stewie: 'TM:24nz88eyawr3' };
 
 // ═══════════════════════════════════════════
 // LOGGING
@@ -327,13 +329,47 @@ function setBgFile(f) {
 // FAKEYOU TTS
 // ═══════════════════════════════════════════
 async function generateTTS(char, text) {
-  const tl = TTS_LANG[char];
-  log(`TTS [${char}]: "${text.substring(0,45)}${text.length>45?'…':''}"`);
-  const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tl}&client=tw-ob&q=${encodeURIComponent(text)}`;
-  const res = await fetch(WORKER + encodeURIComponent(ttsUrl));
-  if (!res.ok) throw new Error(`TTS failed (${res.status})`);
-  log(`Audio ready`, 'ok');
-  return await res.arrayBuffer();
+  const token = MODEL[char];
+  const uuid = crypto.randomUUID();
+  log(`Submitting TTS [${char}]: "${text.substring(0,45)}${text.length>45?'…':''}"`);
+
+  const res = await fetch(purl(`${FAKEYOU}/tts/inference`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ tts_model_token: token, uuid_idempotency_token: uuid, inference_text: text }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`FakeYou submit failed (${res.status}): ${body.substring(0,200)}`);
+  }
+  const data = await res.json();
+  if (!data.success) throw new Error(`FakeYou error: ${JSON.stringify(data)}`);
+  log(`Job submitted: ${data.inference_job_token}`);
+  return await pollJob(data.inference_job_token);
+}
+
+async function pollJob(jobToken, maxTries = 150) {
+  for (let i = 0; i < maxTries; i++) {
+    await sleep(2000);
+    let res;
+    try {
+      res = await fetch(purl(`${FAKEYOU}/tts/job/${jobToken}`), { headers: { 'Accept': 'application/json' } });
+    } catch (e) { log(`Poll network err: ${e.message}`, 'warn'); continue; }
+    if (!res.ok) { log(`Poll HTTP ${res.status}`, 'warn'); continue; }
+    const data = await res.json();
+    if (!data.success) continue;
+    const st = data.state?.status?.status_type;
+    if (i % 3 === 0) log(`Poll ${i+1}: ${st}`);
+    if (st === 'complete_success') {
+      const url = `${AUDIO_CDN}${data.state.maybe_public_bucket_wav_audio_path}`;
+      log(`Audio ready`, 'ok');
+      const audioRes = await fetch(purl(url));
+      if (!audioRes.ok) throw new Error(`Audio fetch failed: ${audioRes.status}`);
+      return await audioRes.arrayBuffer();
+    }
+    if (st === 'attempt_failed' || st === 'dead') throw new Error(`TTS job failed: ${st}`);
+  }
+  throw new Error('TTS job timed out after 5 minutes');
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
