@@ -150,9 +150,10 @@ const S = {
   bgFile: null,
 };
 
-// StreamElements TTS — instant, free, no API key, CORS-friendly.
-// Peter uses a deep male voice; Stewie uses a British male voice.
-const SE_VOICE = { peter: 'Matthew', stewie: 'Brian' };
+// Google Translate TTS — free, no API key, proxied through Cloudflare Worker.
+// Peter = American English, Stewie = British English.
+const WORKER = 'https://tight-boat-f18b.l3onfxdupree.workers.dev/?url=';
+const TTS_LANG = { peter: 'en-US', stewie: 'en-GB' };
 
 // ═══════════════════════════════════════════
 // LOGGING
@@ -326,11 +327,11 @@ function setBgFile(f) {
 // FAKEYOU TTS
 // ═══════════════════════════════════════════
 async function generateTTS(char, text) {
-  const voice = SE_VOICE[char];
-  log(`TTS [${char}/${voice}]: "${text.substring(0,45)}${text.length>45?'…':''}"`);
-  const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`StreamElements TTS failed (${res.status})`);
+  const tl = TTS_LANG[char];
+  log(`TTS [${char}]: "${text.substring(0,45)}${text.length>45?'…':''}"`);
+  const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tl}&client=tw-ob&q=${encodeURIComponent(text)}`;
+  const res = await fetch(WORKER + encodeURIComponent(ttsUrl));
+  if (!res.ok) throw new Error(`TTS failed (${res.status})`);
   log(`Audio ready`, 'ok');
   return await res.arrayBuffer();
 }
