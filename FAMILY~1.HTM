@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Guy Brainrot Generator</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0d0d0d;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:16px 12px;max-width:900px;margin:0 auto}
+    h1{text-align:center;margin-bottom:6px;font-size:1.7rem;letter-spacing:-0.5px}
+    h1 span{color:#4fc3f7}
+    .subtitle{text-align:center;color:#555;font-size:0.8rem;margin-bottom:22px}
+    .section{background:#1a1a1a;border-radius:12px;padding:16px;margin-bottom:16px}
+    .section-title{font-size:0.78rem;font-weight:700;margin-bottom:12px;color:#4fc3f7;text-transform:uppercase;letter-spacing:1.5px}
+    .panels{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+    @media(max-width:560px){.panels{grid-template-columns:1fr}}
+    .panel{background:#1a1a1a;border-radius:12px;padding:14px}
+    .panel-title{font-size:1rem;font-weight:700;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid}
+    .panel.peter .panel-title{color:#ff9800;border-color:#ff9800}
+    .panel.stewie .panel-title{color:#ce93d8;border-color:#ce93d8}
+    .line-entry{display:flex;align-items:flex-start;gap:7px;margin-bottom:9px}
+    .line-num{font-size:0.72rem;color:#555;padding-top:10px;min-width:18px;text-align:right;flex-shrink:0}
+    .line-entry textarea{flex:1;background:#222;border:1px solid #333;border-radius:8px;color:#f0f0f0;padding:8px 10px;font-size:0.88rem;resize:vertical;min-height:58px;font-family:inherit;transition:border-color 0.2s;line-height:1.4}
+    .line-entry textarea:focus{outline:none;border-color:#4fc3f7}
+    .btn-rm{background:none;border:none;color:#444;cursor:pointer;font-size:1.3rem;padding:6px 2px;line-height:1;transition:color 0.2s;flex-shrink:0}
+    .btn-rm:hover{color:#f44336}
+    .btn-add{width:100%;padding:8px;background:#222;border:1px dashed #383838;border-radius:8px;color:#666;cursor:pointer;font-size:1.1rem;transition:all 0.2s;margin-top:2px}
+    .btn-add:hover{background:#2a2a2a;color:#f0f0f0;border-color:#555}
+    .order-list{list-style:none}
+    .order-item{display:flex;align-items:center;gap:9px;background:#222;border-radius:8px;padding:9px 12px;margin-bottom:6px;border-left:3px solid;cursor:grab;transition:background 0.15s}
+    .order-item:active{cursor:grabbing;background:#2a2a2a}
+    .order-item.dragging{opacity:0.4}
+    .order-item.drag-over{background:#2a3a2a;border-left-color:#66bb6a!important}
+    .order-item.peter{border-color:#ff9800}
+    .order-item.stewie{border-color:#ce93d8}
+    .order-badge{font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+    .peter .order-badge{background:#ff9800;color:#000}
+    .stewie .order-badge{background:#7b1fa2;color:#fff}
+    .order-label{flex:1;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ccc}
+    .order-seq{font-size:0.7rem;color:#555;flex-shrink:0;min-width:18px;text-align:center}
+    .btn-arr{background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:2px 5px;border-radius:4px;transition:all 0.15s;flex-shrink:0}
+    .btn-arr:hover{background:#333;color:#f0f0f0}
+    .btn-arr:disabled{opacity:0.15;cursor:default}
+    .drag-hint{font-size:0.75rem;color:#444;margin-bottom:8px}
+    .upload-area{border:2px dashed #2a2a2a;border-radius:10px;padding:22px;text-align:center;cursor:pointer;transition:all 0.2s}
+    .upload-area:hover,.upload-area.dragover{border-color:#4fc3f7;background:#151f28}
+    .upload-area input{display:none}
+    .upload-icon{font-size:2.2rem;display:block;margin-bottom:6px}
+    .upload-area p{color:#555;font-size:0.85rem}
+    .upload-fname{color:#4fc3f7;font-size:0.88rem;margin-top:7px;font-weight:600}
+    #btn-generate{width:100%;padding:15px;background:linear-gradient(135deg,#4fc3f7,#0288d1);border:none;border-radius:12px;color:#fff;font-size:1.15rem;font-weight:700;cursor:pointer;transition:all 0.2s;margin-bottom:16px;letter-spacing:0.3px}
+    #btn-generate:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(79,195,247,0.35)}
+    #btn-generate:disabled{opacity:0.45;cursor:not-allowed;transform:none;box-shadow:none}
+    #progress-section{display:none}
+    .pb-wrap{background:#2a2a2a;border-radius:8px;height:10px;overflow:hidden;margin:10px 0 7px}
+    .pb-fill{height:100%;background:linear-gradient(90deg,#4fc3f7,#0288d1);border-radius:8px;transition:width 0.5s ease;width:0%}
+    #progress-status{font-size:0.83rem;color:#888;text-align:center;min-height:18px}
+    #download-section{display:none;text-align:center}
+    #btn-download{display:inline-block;padding:14px 34px;background:linear-gradient(135deg,#66bb6a,#2e7d32);border:none;border-radius:12px;color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all 0.2s}
+    #btn-download:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(102,187,106,0.4)}
+    .dl-note{color:#555;font-size:0.82rem;margin-bottom:14px}
+    #log{background:#0a0a0a;border-radius:8px;padding:10px 12px;font-size:0.73rem;color:#555;max-height:110px;overflow-y:auto;font-family:'Cascadia Code','Consolas',monospace}
+    .le{margin-bottom:2px;line-height:1.5}
+    .le.err{color:#ef5350}
+    .le.ok{color:#66bb6a}
+    .le.inf{color:#4fc3f7}
+    .le.warn{color:#ffa726}
+    #preview-canvas{display:none}
+    .cors-note{background:#1a1200;border:1px solid #3a2800;border-radius:8px;padding:12px;font-size:0.8rem;color:#ffa726;margin-bottom:16px;line-height:1.5}
+    .cors-note strong{color:#ffcc02}
+    .empty-order{color:#444;font-size:0.85rem;text-align:center;padding:18px}
+  </style>
+</head>
+<body>
+
+<h1>🎬 Family Guy <span>Brainrot</span> Generator</h1>
+<p class="subtitle">Powered by FakeYou TTS · Canvas + Web Audio · No server needed</p>
+
+<div class="cors-note">
+  <strong>✅ CORS Proxy Active:</strong> API requests are automatically routed through <em>corsproxy.io</em> — no browser extension needed. If generation still fails, check your internet connection or try refreshing.
+</div>
+
+<!-- Background Video -->
+<div class="section">
+  <div class="section-title">📹 Background Video</div>
+  <div class="upload-area" id="upload-area">
+    <input type="file" id="bg-video-input" accept="video/*">
+    <span class="upload-icon">🎞️</span>
+    <p>Click or drag & drop your background MP4 video</p>
+    <div class="upload-fname" id="bg-filename"></div>
+  </div>
+</div>
+
+<!-- Character Panels -->
+<div class="panels">
+  <div class="panel peter">
+    <div class="panel-title">🍺 Peter Griffin</div>
+    <div id="peter-lines"></div>
+    <button class="btn-add" onclick="addLine('peter')">＋ Add Line</button>
+  </div>
+  <div class="panel stewie">
+    <div class="panel-title">🎩 Stewie Griffin</div>
+    <div id="stewie-lines"></div>
+    <button class="btn-add" onclick="addLine('stewie')">＋ Add Line</button>
+  </div>
+</div>
+
+<!-- Script Order -->
+<div class="section">
+  <div class="section-title">📋 Script Order</div>
+  <p class="drag-hint">Drag items or use ▲▼ to reorder. Lines play in this sequence.</p>
+  <ul class="order-list" id="order-list">
+    <li class="empty-order">Add lines above — they'll appear here to reorder.</li>
+  </ul>
+</div>
+
+<!-- Generate -->
+<button id="btn-generate" onclick="startGeneration()">🎬 Generate Video</button>
+
+<!-- Progress -->
+<div id="progress-section" class="section">
+  <div class="section-title">⏳ Progress</div>
+  <div class="pb-wrap"><div class="pb-fill" id="pb-fill"></div></div>
+  <div id="progress-status">Starting...</div>
+</div>
+
+<!-- Download -->
+<div id="download-section" class="section">
+  <div class="section-title">✅ Video Ready!</div>
+  <p class="dl-note">Your brainrot masterpiece has been rendered.</p>
+  <a id="btn-download" href="#" download="family-guy-brainrot.webm">⬇️ Download Video</a>
+</div>
+
+<!-- Console Log -->
+<div class="section" style="margin-top:16px">
+  <div class="section-title">🔧 Log</div>
+  <div id="log"></div>
+</div>
+
+<canvas id="preview-canvas"></canvas>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const S = {
+  peter: [],   // [{text, id}]
+  stewie: [],
+  order: [],   // [{char, idx}] — idx into S[char]
+  bgFile: null,
+};
+
+// All FakeYou + audio CDN requests are routed through corsproxy.io
+// to bypass the CORS restriction on local HTML files.
+const PROXY = 'https://corsproxy.io/?url=';
+const purl = u => PROXY + encodeURIComponent(u);
+const FAKEYOU = 'https://api.fakeyou.com';
+const AUDIO_CDN = 'https://storage.googleapis.com/vocodes-public';
+const MODEL = { peter: 'TM:7yxryv11mhn9', stewie: 'TM:4m9rvpjks7e8' };
+
+// ═══════════════════════════════════════════
+// LOGGING
+// ═══════════════════════════════════════════
+function log(msg, t = 'inf') {
+  const el = document.getElementById('log');
+  const d = document.createElement('div');
+  d.className = `le ${t}`;
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ═══════════════════════════════════════════
+// LINE MANAGEMENT
+// ═══════════════════════════════════════════
+let uid = 0;
+
+function addLine(char) {
+  const arr = S[char];
+  const id = `${char}_${uid++}`;
+  arr.push({ id, text: '' });
+  renderPanel(char);
+  syncOrder(char, arr.length - 1, 'add');
+}
+
+function removeLine(char, localIdx) {
+  S[char].splice(localIdx, 1);
+  // Remove from order and remap indices
+  S.order = S.order
+    .filter(o => !(o.char === char && o.idx === localIdx))
+    .map(o => o.char === char && o.idx > localIdx ? { ...o, idx: o.idx - 1 } : o);
+  renderPanel(char);
+  renderOrder();
+}
+
+function updateLineText(char, localIdx, val) {
+  if (S[char][localIdx]) S[char][localIdx].text = val;
+  refreshOrderLabels();
+}
+
+function renderPanel(char) {
+  const arr = S[char];
+  const container = document.getElementById(`${char}-lines`);
+  container.innerHTML = '';
+  arr.forEach((line, i) => {
+    const div = document.createElement('div');
+    div.className = 'line-entry';
+    const ta = document.createElement('textarea');
+    ta.value = line.text;
+    ta.placeholder = `Type ${char === 'peter' ? "Peter's" : "Stewie's"} line...`;
+    ta.rows = 2;
+    ta.oninput = () => updateLineText(char, i, ta.value);
+    div.innerHTML = `<span class="line-num">${i + 1}</span>`;
+    div.appendChild(ta);
+    const rm = document.createElement('button');
+    rm.className = 'btn-rm';
+    rm.title = 'Remove';
+    rm.textContent = '×';
+    rm.onclick = () => removeLine(char, i);
+    div.appendChild(rm);
+    container.appendChild(div);
+  });
+}
+
+function syncOrder(char, idx, action) {
+  if (action === 'add') {
+    S.order.push({ char, idx });
+  }
+  renderOrder();
+}
+
+// ═══════════════════════════════════════════
+// DRAG & DROP ORDER
+// ═══════════════════════════════════════════
+let dragSrc = null;
+
+function renderOrder() {
+  const ul = document.getElementById('order-list');
+  ul.innerHTML = '';
+
+  if (S.order.length === 0) {
+    ul.innerHTML = '<li class="empty-order">Add lines above — they\'ll appear here to reorder.</li>';
+    return;
+  }
+
+  S.order.forEach((item, i) => {
+    const arr = S[item.char];
+    const line = arr[item.idx];
+    const txt = line ? (line.text.trim() || `(empty)`) : '(deleted)';
+
+    const li = document.createElement('li');
+    li.className = `order-item ${item.char}`;
+    li.draggable = true;
+    li.dataset.i = i;
+
+    li.innerHTML = `
+      <span class="order-seq">${i + 1}</span>
+      <span class="order-badge">${item.char === 'peter' ? 'Peter' : 'Stewie'} #${item.idx + 1}</span>
+      <span class="order-label">${esc(txt.substring(0, 70))}${txt.length > 70 ? '…' : ''}</span>
+      <button class="btn-arr" title="Up" onclick="moveOrder(${i},-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+      <button class="btn-arr" title="Down" onclick="moveOrder(${i},1)" ${i === S.order.length - 1 ? 'disabled' : ''}>▼</button>
+    `;
+
+    // Drag events
+    li.addEventListener('dragstart', e => {
+      dragSrc = i;
+      setTimeout(() => li.classList.add('dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    li.addEventListener('dragend', () => {
+      li.classList.remove('dragging');
+      document.querySelectorAll('.order-item').forEach(el => el.classList.remove('drag-over'));
+    });
+    li.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.order-item').forEach(el => el.classList.remove('drag-over'));
+      li.classList.add('drag-over');
+    });
+    li.addEventListener('drop', e => {
+      e.preventDefault();
+      if (dragSrc !== null && dragSrc !== i) {
+        const moved = S.order.splice(dragSrc, 1)[0];
+        S.order.splice(i, 0, moved);
+        dragSrc = null;
+        renderOrder();
+      }
+    });
+
+    ul.appendChild(li);
+  });
+}
+
+function moveOrder(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= S.order.length) return;
+  [S.order[i], S.order[j]] = [S.order[j], S.order[i]];
+  renderOrder();
+}
+
+function refreshOrderLabels() { renderOrder(); }
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════
+// BACKGROUND VIDEO UPLOAD
+// ═══════════════════════════════════════════
+const uploadArea = document.getElementById('upload-area');
+const bgInput = document.getElementById('bg-video-input');
+
+uploadArea.addEventListener('click', () => bgInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadArea.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('video/')) setBgFile(f);
+});
+bgInput.addEventListener('change', () => { if (bgInput.files[0]) setBgFile(bgInput.files[0]); });
+
+function setBgFile(f) {
+  S.bgFile = f;
+  document.getElementById('bg-filename').textContent = `✓ ${f.name}`;
+  log(`Background video: ${f.name} (${(f.size/1e6).toFixed(1)} MB)`, 'ok');
+}
+
+// ═══════════════════════════════════════════
+// FAKEYOU TTS
+// ═══════════════════════════════════════════
+async function generateTTS(char, text) {
+  const token = MODEL[char];
+  const uuid = crypto.randomUUID();
+
+  log(`Submitting TTS [${char}]: "${text.substring(0,45)}${text.length>45?'…':''}"`);
+
+  const res = await fetch(purl(`${FAKEYOU}/tts/inference`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({
+      tts_model_token: token,
+      uuid_idempotency_token: uuid,
+      inference_text: text,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`FakeYou submit failed (${res.status}): ${body.substring(0,200)}`);
+  }
+
+  const data = await res.json();
+  if (!data.success) throw new Error(`FakeYou error: ${JSON.stringify(data)}`);
+
+  const jobToken = data.inference_job_token;
+  log(`Job submitted: ${jobToken}`);
+  return await pollJob(jobToken);
+}
+
+async function pollJob(jobToken, maxTries = 150) {
+  for (let i = 0; i < maxTries; i++) {
+    await sleep(2000);
+    let res;
+    try {
+      res = await fetch(purl(`${FAKEYOU}/tts/job/${jobToken}`), {
+        headers: { 'Accept': 'application/json' },
+      });
+    } catch (e) { log(`Poll network err: ${e.message}`, 'warn'); continue; }
+
+    if (!res.ok) { log(`Poll HTTP ${res.status}`, 'warn'); continue; }
+    const data = await res.json();
+    if (!data.success) continue;
+
+    const statusType = data.state?.status?.status_type;
+    if (i % 3 === 0) log(`Poll ${i+1}: ${statusType}`);
+
+    if (statusType === 'complete_success') {
+      const path = data.state.maybe_public_bucket_wav_audio_path;
+      const url = `${AUDIO_CDN}${path}`;
+      log(`Audio ready → ${url.substring(url.lastIndexOf('/')+1)}`, 'ok');
+      const audioRes = await fetch(purl(url));
+      if (!audioRes.ok) throw new Error(`Audio fetch failed: ${audioRes.status}`);
+      return await audioRes.arrayBuffer();
+    }
+
+    if (statusType === 'attempt_failed' || statusType === 'dead') {
+      throw new Error(`TTS job failed: ${statusType}`);
+    }
+  }
+  throw new Error('TTS job timed out after 5 minutes');
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ═══════════════════════════════════════════
+// MAIN GENERATION FLOW
+// ═══════════════════════════════════════════
+async function startGeneration() {
+  if (!S.bgFile) { alert('Please upload a background video first!'); return; }
+
+  const activeOrder = S.order.filter(item => {
+    const line = S[item.char][item.idx];
+    return line && line.text.trim().length > 0;
+  });
+
+  if (activeOrder.length === 0) { alert('Please add at least one line with text!'); return; }
+
+  const genBtn = document.getElementById('btn-generate');
+  genBtn.disabled = true;
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('download-section').style.display = 'none';
+
+  try {
+    // ── Phase 1: TTS generation ──
+    const total = activeOrder.length;
+    const clips = [];
+
+    for (let i = 0; i < total; i++) {
+      const item = activeOrder[i];
+      const line = S[item.char][item.idx];
+      setProgress(Math.round((i / total) * 58), `Generating ${item.char === 'peter' ? 'Peter' : 'Stewie'} line ${item.idx + 1}… (${i + 1}/${total})`);
+      const buf = await generateTTS(item.char, line.text.trim());
+      clips.push({ char: item.char, text: line.text.trim(), buf });
+    }
+
+    setProgress(60, 'All voices generated! Assembling video…');
+    await assembleVideo(clips);
+
+  } catch (err) {
+    log(`FATAL: ${err.message}`, 'err');
+    console.error(err);
+    alert(`Generation failed:\n\n${err.message}`);
+    genBtn.disabled = false;
+  }
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('pb-fill').style.width = `${pct}%`;
+  document.getElementById('progress-status').textContent = msg;
+  log(msg);
+}
+
+// ═══════════════════════════════════════════
+// VIDEO ASSEMBLY
+// ═══════════════════════════════════════════
+async function assembleVideo(clips) {
+  // Canvas is 9:16 portrait (1080×1920) — we'll render at half res for performance
+  const W = 540, H = 960;
+  const canvas = document.getElementById('preview-canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // ── Load background video ──
+  const bgVid = document.createElement('video');
+  bgVid.src = URL.createObjectURL(S.bgFile);
+  bgVid.muted = true;
+  bgVid.loop = true;
+  bgVid.playsInline = true;
+  bgVid.crossOrigin = 'anonymous';
+
+  await new Promise((ok, fail) => {
+    bgVid.onloadeddata = ok;
+    bgVid.onerror = () => fail(new Error('Background video failed to load'));
+    bgVid.load();
+  });
+  log(`BG video loaded: ${bgVid.videoWidth}×${bgVid.videoHeight}`, 'ok');
+
+  setProgress(65, 'Decoding audio clips…');
+
+  // ── Audio context + decode ──
+  const audioCtx = new AudioContext();
+  const decoded = [];
+  for (const clip of clips) {
+    const ab = await audioCtx.decodeAudioData(clip.buf.slice(0));
+    decoded.push({ ...clip, decoded: ab });
+  }
+
+  setProgress(70, 'Starting MediaRecorder…');
+
+  // ── Canvas + audio stream → MediaRecorder ──
+  const destNode = audioCtx.createMediaStreamDestination();
+  const canvasStream = canvas.captureStream(30);
+
+  const combined = new MediaStream([
+    ...canvasStream.getVideoTracks(),
+    ...destNode.stream.getAudioTracks(),
+  ]);
+
+  // Pick best supported mime
+  const mimes = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+  ];
+  const mime = mimes.find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+  log(`Recording mime: ${mime}`, 'inf');
+
+  const recorder = new MediaRecorder(combined, {
+    mimeType: mime,
+    videoBitsPerSecond: 3_500_000,
+    audioBitsPerSecond: 128_000,
+  });
+
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  // ── Drawing loop state ──
+  let animRunning = true;
+  let curChar = '', curText = '';
+  let curLine = 0;
+
+  // Pre-cache font measurements
+  function wrapText(text, maxW, fontSize) {
+    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+    for (const w of words) {
+      const test = line ? `${line} ${w}` : w;
+      if (ctx.measureText(test).width > maxW && line) {
+        lines.push(line); line = w;
+      } else { line = test; }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  function drawFrame(ts) {
+    if (!animRunning) return;
+
+    // Draw BG video (cover-fit to canvas)
+    const vw = bgVid.videoWidth || W, vh = bgVid.videoHeight || H;
+    const scale = Math.max(W / vw, H / vh);
+    const sw = vw * scale, sh = vh * scale;
+    const sx = (W - sw) / 2, sy = (H - sh) / 2;
+    ctx.drawImage(bgVid, sx, sy, sw, sh);
+
+    // Subtitle overlay
+    if (curText) {
+      const barH = 200;
+      const barY = H - barH - 40;
+
+      // Semi-transparent black bar
+      ctx.fillStyle = 'rgba(0,0,0,0.78)';
+      roundRect(ctx, 0, barY, W, barH, 0);
+      ctx.fill();
+
+      // Character name badge
+      const nameColor = curChar === 'peter' ? '#ff9800' : '#ce93d8';
+      ctx.fillStyle = nameColor;
+      const nameLabel = curChar === 'peter' ? '🍺 PETER GRIFFIN' : '🎩 STEWIE GRIFFIN';
+      ctx.font = 'bold 26px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(nameLabel, W / 2, barY + 30);
+
+      // Divider line
+      ctx.strokeStyle = nameColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(30, barY + 38);
+      ctx.lineTo(W - 30, barY + 38);
+      ctx.stroke();
+
+      // Wrapped subtitle text
+      const lines = wrapText(curText, W - 60, 28);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 28px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      const lineH = 38;
+      const startY = barY + 68;
+      lines.slice(0, 3).forEach((l, i) => {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(l, W / 2, startY + i * lineH);
+      });
+
+      // Step indicator
+      ctx.font = '16px Arial, sans-serif';
+      ctx.fillStyle = '#555';
+      ctx.fillText(`${curLine} / ${decoded.length}`, W / 2, barY + barH - 12);
+    }
+
+    requestAnimationFrame(drawFrame);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (r) {
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y, x + w, y + r, r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x, y + h, x, y + h - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+    } else {
+      ctx.rect(x, y, w, h);
+    }
+    ctx.closePath();
+  }
+
+  // Start playback
+  bgVid.play();
+  recorder.start(100);
+  requestAnimationFrame(drawFrame);
+  setProgress(75, 'Recording…');
+
+  // ── Play clips in order ──
+  for (let i = 0; i < decoded.length; i++) {
+    const { char, text, decoded: ab } = decoded[i];
+    curChar = char;
+    curText = text;
+    curLine = i + 1;
+    setProgress(75 + Math.round((i / decoded.length) * 20), `Recording line ${i + 1}/${decoded.length}…`);
+    log(`▶ Line ${i + 1}: [${char}] "${text.substring(0, 40)}${text.length > 40 ? '…' : ''}"`);
+
+    await new Promise(resolve => {
+      const src = audioCtx.createBufferSource();
+      src.buffer = ab;
+      src.connect(destNode);           // capture for recording
+      src.connect(audioCtx.destination); // monitor in speakers
+      src.onended = resolve;
+      src.start();
+    });
+
+    // Brief pause between lines
+    await sleep(350);
+  }
+
+  // Hold final frame a moment
+  curText = '';
+  await sleep(800);
+
+  animRunning = false;
+  bgVid.pause();
+  recorder.stop();
+  setProgress(97, 'Finalising video file…');
+
+  await new Promise(r => { recorder.onstop = r; });
+  await audioCtx.close();
+
+  const blob = new Blob(chunks, { type: mime });
+  const url = URL.createObjectURL(blob);
+  const sizeMB = (blob.size / 1e6).toFixed(2);
+  log(`Video ready: ${sizeMB} MB`, 'ok');
+
+  const dlBtn = document.getElementById('btn-download');
+  dlBtn.href = url;
+  dlBtn.download = 'family-guy-brainrot.webm';
+
+  document.getElementById('download-section').style.display = 'block';
+  setProgress(100, '✅ Done! Click download below.');
+  document.getElementById('btn-generate').disabled = false;
+}
+
+// ═══════════════════════════════════════════
+// INIT — add one starter line for each char
+// ═══════════════════════════════════════════
+addLine('peter');
+addLine('stewie');
+</script>
+</body>
+</html>
