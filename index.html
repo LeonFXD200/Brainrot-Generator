@@ -393,17 +393,18 @@ async function generateTTS(char, text) {
 }
 
 async function pollJob(jobToken, maxTries = 150) {
+  const pollHeaders = { 'Accept': 'application/json' };
+  if (fySession) pollHeaders['Cookie'] = fySession;
   for (let i = 0; i < maxTries; i++) {
     await sleep(2000);
     let res;
     try {
-      res = await fetch(purl(`${FAKEYOU}/tts/job/${jobToken}`), { headers: { 'Accept': 'application/json' } });
+      res = await fetch(purl(`${FAKEYOU}/tts/job/${jobToken}`), { headers: pollHeaders });
     } catch (e) { log(`Poll network err: ${e.message}`, 'warn'); continue; }
     if (!res.ok) { log(`Poll HTTP ${res.status}`, 'warn'); continue; }
     const data = await res.json();
-    if (i === 0) log(`Poll response shape: ${JSON.stringify(data).substring(0, 200)}`);
+    if (i === 0) log(`Response: ${JSON.stringify(data).substring(0, 300)}`);
     if (!data.success) continue;
-    // Handle both {status:{status_type:...}} and {status:"..."} shapes
     const st = data.state?.status?.status_type ?? data.state?.status;
     const audioPath = data.state?.maybe_public_bucket_wav_audio_path;
     if (i % 3 === 0) log(`Poll ${i+1}: ${st}`);
