@@ -150,10 +150,9 @@ const S = {
   bgFile: null,
 };
 
-// Route all requests through a CORS proxy since FakeYou blocks browser origins.
-// thingproxy uses append-style URLs and supports POST.
-const PROXY = 'https://thingproxy.freeboard.io/fetch/';
-const purl = u => PROXY + u;
+// Personal Cloudflare Worker proxy — bypasses FakeYou CORS restrictions.
+const PROXY = 'https://tight-boat-f18b.l3onfxdupree.workers.dev/?url=';
+const purl = u => PROXY + encodeURIComponent(u);
 const FAKEYOU = 'https://api.fakeyou.com';
 const AUDIO_CDN = 'https://storage.googleapis.com/vocodes-public';
 const MODEL = { peter: 'TM:7yxryv11mhn9', stewie: 'TM:4m9rvpjks7e8' };
