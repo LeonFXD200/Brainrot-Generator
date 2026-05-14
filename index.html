@@ -77,7 +77,7 @@
 <p class="subtitle">Powered by FakeYou TTS · Canvas + Web Audio · No server needed</p>
 
 <div class="cors-note">
-  <strong>✅ CORS Proxy Active:</strong> API requests are automatically routed through <em>corsproxy.io</em> — no browser extension needed. If generation still fails, check your internet connection or try refreshing.
+  <strong>✅ Direct API Mode:</strong> Running on GitHub Pages — API requests go directly to FakeYou with no proxy needed. If generation fails, check your internet connection or try refreshing.
 </div>
 
 <!-- Background Video -->
@@ -150,10 +150,10 @@ const S = {
   bgFile: null,
 };
 
-// All FakeYou + audio CDN requests are routed through corsproxy.io
-// to bypass the CORS restriction on local HTML files.
-const PROXY = 'https://corsproxy.io/?url=';
-const purl = u => PROXY + encodeURIComponent(u);
+// On GitHub Pages (HTTPS) call FakeYou directly; only use the proxy
+// when running from a local file:// origin.
+const PROXY = location.protocol === 'file:' ? 'https://corsproxy.io/?url=' : '';
+const purl = u => PROXY ? PROXY + encodeURIComponent(u) : u;
 const FAKEYOU = 'https://api.fakeyou.com';
 const AUDIO_CDN = 'https://storage.googleapis.com/vocodes-public';
 const MODEL = { peter: 'TM:7yxryv11mhn9', stewie: 'TM:4m9rvpjks7e8' };
