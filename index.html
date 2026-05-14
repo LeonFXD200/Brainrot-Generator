@@ -401,11 +401,14 @@ async function pollJob(jobToken, maxTries = 150) {
     } catch (e) { log(`Poll network err: ${e.message}`, 'warn'); continue; }
     if (!res.ok) { log(`Poll HTTP ${res.status}`, 'warn'); continue; }
     const data = await res.json();
+    if (i === 0) log(`Poll response shape: ${JSON.stringify(data).substring(0, 200)}`);
     if (!data.success) continue;
-    const st = data.state?.status?.status_type;
+    // Handle both {status:{status_type:...}} and {status:"..."} shapes
+    const st = data.state?.status?.status_type ?? data.state?.status;
+    const audioPath = data.state?.maybe_public_bucket_wav_audio_path;
     if (i % 3 === 0) log(`Poll ${i+1}: ${st}`);
-    if (st === 'complete_success') {
-      const url = `${AUDIO_CDN}${data.state.maybe_public_bucket_wav_audio_path}`;
+    if (st === 'complete_success' || audioPath) {
+      const url = `${AUDIO_CDN}${audioPath}`;
       log(`Audio ready`, 'ok');
       const audioRes = await fetch(purl(url));
       if (!audioRes.ok) throw new Error(`Audio fetch failed: ${audioRes.status}`);
@@ -413,7 +416,7 @@ async function pollJob(jobToken, maxTries = 150) {
     }
     if (st === 'attempt_failed' || st === 'dead') throw new Error(`TTS job failed: ${st}`);
   }
-  throw new Error('TTS job timed out after 5 minutes');
+  throw new Error('TTS job timed out');
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
